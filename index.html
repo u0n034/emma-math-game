@@ -11,16 +11,16 @@
 <title>えまちゃんの さんすう</title>
 <style>
   :root{
-    --bg:#e9f5ff; --card:#ffffff; --ink:#2b3a4a; --muted:#7f93a6;
+    --bg:#f5f9ff; --card:#ffffff; --ink:#2b3a4a; --muted:#7f93a6;
     --aqua:#4fb8ff; --aqua-dark:#1f8fe0; --mint:#5fd3a0; --coral:#ff8a80; --sun:#ffd166;
-    --key:#f3f8fc; --key-ink:#1f2f3f; --shadow:0 6px 0 rgba(0,0,0,.08);
+    --key:#f3f8fc; --key-ink:#1f2f3f; --shadow:0 4px 14px rgba(30,80,140,.10),0 0 0 1px rgba(30,80,140,.06);
     --radius:22px;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
   html,body{height:100%;margin:0}
   body{
     font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Kosugi Maru","Hiragino Sans",system-ui,sans-serif;
-    background:var(--bg);color:var(--ink);
+    background:var(--bg) radial-gradient(circle at 75% 20%,#d6ebff 0%,rgba(214,235,255,0) 45%),radial-gradient(circle at 20% 90%,#e3f0ff 0%,rgba(227,240,255,0) 40%);background-attachment:fixed;color:var(--ink);
     display:flex;flex-direction:column;align-items:center;
     min-height:100dvh;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
     overflow:hidden;
@@ -34,7 +34,7 @@
     width:100%;padding:18px 20px;border-radius:var(--radius);background:var(--card);
     font-size:21px;font-weight:700;box-shadow:var(--shadow);text-align:left;display:flex;align-items:center;gap:14px
   }
-  .btn:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.08)}
+  .btn:active{transform:translateY(2px) scale(.99)}
   .btn .ic{font-size:30px}
   .btn small{display:block;font-size:13px;color:var(--muted);font-weight:500;margin-top:2px}
   .btn.primary{background:var(--aqua);color:#fff}
@@ -48,8 +48,8 @@
 
   /* pet */
   .pet-wrap{position:relative;display:flex;flex-direction:column;align-items:center;margin-top:4px}
-  .pet{width:150px;height:150px;animation:bob 2.4s ease-in-out infinite;transform-origin:50% 100%}
-  .pet.small{width:96px;height:96px}
+  .pet{width:150px;height:162px;image-rendering:pixelated;animation:bob 2.4s ease-in-out infinite;transform-origin:50% 100%}
+  .pet.small{width:96px;height:104px}
   .pet.jump{animation:jump .7s cubic-bezier(.3,1.5,.5,1) 1}
   .pet.wiggle{animation:wiggle .6s ease-in-out 1}
   .pet.party{animation:party 1s ease-in-out infinite}
@@ -100,7 +100,7 @@
   .key{
     height:66px;border-radius:18px;background:var(--card);font-size:30px;font-weight:700;color:var(--key-ink);box-shadow:var(--shadow)
   }
-  .key:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.08)}
+  .key:active{transform:translateY(2px) scale(.98)}
   .key.del{font-size:24px;color:var(--muted)}
   .key.go{background:var(--aqua);color:#fff;font-size:22px}
   .key.go:disabled{opacity:.45}
@@ -119,7 +119,7 @@
   .sect{width:100%;font-size:14px;color:var(--muted);margin:4px 0 -6px}
 
   /* overlay */
-  .overlay{position:fixed;inset:0;background:rgba(233,245,255,.96);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;padding:16px}
+  .overlay{position:fixed;inset:0;background:rgba(245,249,255,.96);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;padding:16px}
   .overlay.active{display:flex}
   .overlay .btn{max-width:360px}
 
@@ -267,7 +267,6 @@
 </div>
 
 <div class="confetti" id="confetti"></div>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><radialGradient id="petGrad" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#9fdcff"/><stop offset="1" stop-color="#3aa6f2"/></radialGradient></defs></svg>
 
 <script>
 /* ===================== STORAGE ===================== */
@@ -285,35 +284,87 @@ function load(){
 }
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){}}
 
-/* ===================== PET ===================== */
+/* ===================== PET (pixel art) ===================== */
 const LEVELS=[0,30,100,250,500,900,1500]; // totalCorrect thresholds
 function petLevel(){let l=1;for(let i=1;i<LEVELS.length;i++){if(D.totalCorrect>=LEVELS[i])l=i+1;}return l;}
+const PAL={o:'#1c4f8f',b:'#4ba3f7',d:'#2f7fdc',l:'#a6dbff',w:'#ffffff',k:'#1a2b45',p:'#ff9bbb',r:'#ff6fa8',R:'#d9448a',y:'#ffd23f',Y:'#f2a900',g:'#e8f4ff',s:'#ffe066'};
+const W=24,H=26,BY=9; // canvas size, body top offset
+// body rows: [left,right] inclusive, relative to BY
+const BODY=[[10,13],[8,15],[7,16],[6,17],[5,18],[4,19],[4,19],[3,20],[3,20],[3,20],[3,20],[2,21],[2,21],[2,21],[3,20]];
+function petGrid(mood,lv){
+  const g=Array.from({length:H},()=>Array(W).fill(null));
+  const set=(x,y,c)=>{if(x>=0&&x<W&&y>=0&&y<H)g[y][x]=c;};
+  const inBody=(x,y)=>{const r=BODY[y-BY];return !!r&&x>=r[0]&&x<=r[1];};
+  // body with outline + shading
+  for(let yy=0;yy<BODY.length;yy++){const y=BY+yy,[L,R]=BODY[yy];
+    for(let x=L;x<=R;x++){
+      const edge=!inBody(x-1,y)||!inBody(x+1,y)||!inBody(x,y-1)||!inBody(x,y+1);
+      let c='b';
+      if(edge)c='o';else if(yy>=11||x>=R-2)c='d';
+      set(x,y,c);
+    }
+  }
+  // highlight
+  [[8,2],[9,2],[10,2],[8,3],[9,3],[7,4]].forEach(([x,y])=>set(x,BY+y,'l'));set(9,BY+1,'w');set(8,BY+2,'w');
+  // cheeks
+  set(5,BY+9,'p');set(6,BY+9,'p');set(17,BY+9,'p');set(18,BY+9,'p');
+  // eyes
+  const E=[[8,BY+6],[15,BY+6]]; // left/right eye anchor (x of inner column)
+  if(mood==='happy'){ // ^ ^
+    [[7,7],[8,6],[9,7],[14,7],[15,6],[16,7]].forEach(([x,y])=>set(x,BY+y,'k'));
+  }else if(mood==='wow'){
+    [[7,6],[8,6],[7,7],[8,7],[15,6],[16,6],[15,7],[16,7]].forEach(([x,y])=>set(x,BY+y,'k'));set(7,BY+6,'w');set(15,BY+6,'w');
+  }else if(mood==='think'){ // flat eyes
+    [[7,7],[8,7],[15,7],[16,7]].forEach(([x,y])=>set(x,BY+y,'k'));
+  }else if(mood==='sleep'){ // closed eyes + zzz
+    [[7,7],[8,7],[9,7],[14,7],[15,7],[16,7]].forEach(([x,y])=>set(x,BY+y,'k'));
+    [[20,3],[21,3],[20,4],[20,5],[21,5],[22,0],[23,0],[22,1],[22,2],[23,2]].forEach(([x,y])=>set(x,BY+y-3,'o'));
+  }else{ // normal: 1x2 dots with shine
+    [[8,6],[8,7],[15,6],[15,7]].forEach(([x,y])=>set(x,BY+y,'k'));set(8,BY+6,'o');set(15,BY+6,'o');
+  }
+  // eyelashes (girl)
+  if(mood!=='sleep'){set(6,BY+5,'k');set(17,BY+5,'k');}
+  // mouth
+  if(mood==='happy'||mood==='wow'){ // ω
+    [[9,9],[10,10],[11,10],[12,10],[13,9]].forEach(([x,y])=>set(x,BY+y,'k'));set(11,BY+9,'k');
+  }else if(mood==='think'){ set(11,BY+10,'k');set(12,BY+10,'k'); }
+  else if(mood==='sleep'){ set(11,BY+10,'k'); }
+  else { [[10,10],[11,10],[12,10]].forEach(([x,y])=>set(x,BY+y,'k')); }
+  // arms
+  if(mood==='happy'||mood==='wow'){ // arms up
+    [[1,7],[1,8],[2,9],[22,7],[22,8],[21,9]].forEach(([x,y])=>set(x,BY+y,'o'));set(1,BY+9,'b');set(22,BY+9,'b');
+  }else{ [[1,11],[2,11],[21,11],[22,11]].forEach(([x,y])=>set(x,BY+y,'o'));set(1,BY+10,'o');set(22,BY+10,'o'); }
+  // ribbon (always, she's a girl)
+  const bow=[[0,0,'r'],[1,0,'r'],[3,0,'r'],[4,0,'r'],[0,1,'r'],[1,1,'R'],[2,1,'R'],[3,1,'R'],[4,1,'r'],[0,2,'r'],[1,2,'r'],[3,2,'r'],[4,2,'r'],[2,0,'s'],[2,2,'R']];
+  bow.forEach(([x,y,c])=>set(14+x,BY-1+y,c));
+  // level accessories
+  if(lv>=2){ // star hairpin left
+    [[5,1],[4,2],[5,2],[6,2],[5,3]].forEach(([x,y])=>set(x,BY+y,'y'));set(5,BY+2,'s');
+  }
+  if(lv>=3&&lv<4){ // party hat
+    const hat=[[3,0],[2,1],[3,1],[4,1],[2,2],[3,2],[4,2],[1,3],[2,3],[3,3],[4,3],[5,3],[1,4],[2,4],[3,4],[4,4],[5,4],[0,5],[1,5],[2,5],[3,5],[4,5],[5,5],[6,5]];
+    hat.forEach(([x,y])=>set(8+x,BY-6+y,(y%2?'r':'R')));set(11,BY-7,'y');set(10,BY-7,'y');set(12,BY-7,'y');set(11,BY-8,'y');
+  }
+  if(lv>=4&&lv<5){ // crown
+    const cr=[[0,0],[3,0],[6,0],[0,1],[1,1],[3,1],[5,1],[6,1],[0,2],[1,2],[2,2],[3,2],[4,2],[5,2],[6,2]];
+    cr.forEach(([x,y])=>set(9+x,BY-3+y,'y'));set(9,BY-3,'r');set(12,BY-3,'l');set(15,BY-3,'r');
+  }
+  if(lv>=5){ // halo
+    for(let x=8;x<=15;x++)set(x,BY-4,'y');set(7,BY-3,'y');set(16,BY-3,'y');set(8,BY-5,'Y');set(15,BY-5,'Y');
+  }
+  if(lv>=6){ // wings
+    [[0,9],[1,8],[0,8],[1,7],[0,7],[0,6],[1,6]].forEach(([x,y])=>{set(x,BY+y,'w');set(23-x,BY+y,'w');});
+    [[0,10],[1,9],[2,8]].forEach(([x,y])=>{set(x,BY+y,'g');set(23-x,BY+y,'g');});
+  }
+  if(lv>=7){ // sparkles
+    [[1,2],[2,1],[2,3],[3,2],[21,4],[22,3],[22,5],[23,4],[2,14],[22,15]].forEach(([x,y])=>set(x,BY-4+y,'s'));
+  }
+  return g;
+}
 function petSVG(mood='normal'){
-  const lv=petLevel();
-  const eyes = mood==='happy'
-    ? '<path d="M38 56 q8 -10 16 0" stroke="#1f3a52" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M66 56 q8 -10 16 0" stroke="#1f3a52" stroke-width="4" fill="none" stroke-linecap="round"/>'
-    : mood==='wow'
-    ? '<circle cx="46" cy="56" r="6" fill="#1f3a52"/><circle cx="74" cy="56" r="6" fill="#1f3a52"/><circle cx="48" cy="54" r="2" fill="#fff"/><circle cx="76" cy="54" r="2" fill="#fff"/>'
-    : mood==='think'
-    ? '<circle cx="46" cy="57" r="4.5" fill="#1f3a52"/><circle cx="74" cy="57" r="4.5" fill="#1f3a52"/><path d="M38 46 l14 4" stroke="#1f3a52" stroke-width="3" stroke-linecap="round"/>'
-    : '<circle cx="46" cy="57" r="4.5" fill="#1f3a52"/><circle cx="74" cy="57" r="4.5" fill="#1f3a52"/><circle cx="48" cy="55" r="1.6" fill="#fff"/><circle cx="76" cy="55" r="1.6" fill="#fff"/>';
-  const mouth = mood==='happy'||mood==='wow'
-    ? '<path d="M50 70 q10 12 20 0 z" fill="#1f3a52"/><path d="M53 75 q7 5 14 0" fill="#ff8a80"/>'
-    : mood==='think' ? '<path d="M54 72 q6 -4 12 0" stroke="#1f3a52" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
-    : '<path d="M52 70 q8 8 16 0" stroke="#1f3a52" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
-  const cheeks = lv>=2 ? '<ellipse cx="36" cy="68" rx="6" ry="4" fill="#ffb3c1" opacity=".8"/><ellipse cx="84" cy="68" rx="6" ry="4" fill="#ffb3c1" opacity=".8"/>' : '';
-  const sprout = lv>=3 ? '<path d="M60 14 q-2 -12 -12 -14 q2 10 12 14z" fill="#5fd3a0"/><path d="M60 14 q2 -12 12 -14 q-2 10 -12 14z" fill="#74e0b0"/>' : '';
-  const bow = lv>=4 ? '<path d="M78 30 l12 -8 l0 16z M90 30 l12 -8 l0 16z" fill="#ff8a80"/><circle cx="90" cy="30" r="4" fill="#ff6f61"/>' : '';
-  const crown = lv>=5 ? '<path d="M40 22 l8 -14 l12 10 l12 -10 l8 14 z" fill="#ffd166" stroke="#e6b84a" stroke-width="2" stroke-linejoin="round"/><circle cx="48" cy="8" r="3" fill="#ff8a80"/><circle cx="60" cy="18" r="3" fill="#5fd3a0"/><circle cx="72" cy="8" r="3" fill="#4fb8ff"/>' : '';
-  const stars = lv>=6 ? '<text x="8" y="40" font-size="14">✨</text><text x="98" y="90" font-size="14">✨</text>' : '';
-  const wings = lv>=7 ? '<path d="M22 70 q-18 -10 -14 -30 q12 8 14 30z" fill="#fff" opacity=".85"/><path d="M98 70 q18 -10 14 -30 q-12 8 -14 30z" fill="#fff" opacity=".85"/>' : '';
-  return `<svg viewBox="0 0 120 120" width="100%" height="100%">
-    ${wings}
-    <ellipse cx="60" cy="112" rx="30" ry="5" fill="rgba(0,0,0,.08)"/>
-    <path d="M60 10 C60 10 22 52 22 76 a38 38 0 0 0 76 0 C98 52 60 10 60 10z" fill="url(#petGrad)"/>
-    <ellipse cx="42" cy="44" rx="7" ry="12" fill="#fff" opacity=".55" transform="rotate(20 42 44)"/>
-    ${sprout}${crown}${bow}${cheeks}${eyes}${mouth}${stars}
-  </svg>`;
+  const g=petGrid(mood,petLevel());let rects='';
+  for(let y=0;y<H;y++){let x=0;while(x<W){const c=g[y][x];if(!c){x++;continue;}let x2=x;while(x2+1<W&&g[y][x2+1]===c)x2++;rects+=`<rect x="${x}" y="${y}" width="${x2-x+1}" height="1" fill="${PAL[c]}"/>`;x=x2+1;}}
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" height="100%" shape-rendering="crispEdges"><ellipse cx="12" cy="${BY+15.2}" rx="9" ry="1.1" fill="rgba(28,79,143,.12)"/>${rects}</svg>`;
 }
 function renderPet(el,mood){el.innerHTML=petSVG(mood);}
 function animatePet(el,cls){el.classList.remove('jump','wiggle');void el.offsetWidth;el.classList.add(cls);setTimeout(()=>el.classList.remove(cls),800);}
@@ -390,7 +441,7 @@ function renderHome(){
   const w=weakList();
   $('weakSub').textContent=w.length?`いま にがてな もんだい：${w.length}こ（${w.slice(0,3).map(p=>key(p.a,p.b)).join('、')}…）`:'まだ きろくが ないので、7と8の もんだいを ちゅうしんに だすよ';
   const msgs=['きょうも いっしょに がんばろう！',`${D.petName}だよ！ どれから やる？`,'たしざん だいすき！','ゆっくりで いいよ、いっしょに やろう'];
-  $('homeBubble').textContent=D.sessions.length?pick(msgs):`はじめまして！ ぼく ${D.petName}。 いっしょに たしざん しよう！`;
+  $('homeBubble').textContent=D.sessions.length?pick(msgs):`はじめまして！ わたし ${D.petName}。 いっしょに たしざん しよう！`;
 }
 document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{sfx.tap();startSession(b.dataset.mode);}));
 $('toParent').addEventListener('click',()=>{renderParent();show('parent');});
@@ -479,7 +530,7 @@ document.addEventListener('keydown',e=>{
 });
 
 /* pause / quit */
-function pause(){if(!S)return;if(S.phase==='input'){S.activeMs+=Date.now()-S.qStart;}S.paused=true;renderPet($('pausePet'),'normal');$('pauseOverlay').classList.add('active');}
+function pause(){if(!S)return;if(S.phase==='input'){S.activeMs+=Date.now()-S.qStart;}S.paused=true;renderPet($('pausePet'),'sleep');$('pauseOverlay').classList.add('active');}
 function resume(){S.paused=false;if(S.phase==='input')S.qStart=Date.now();else if(S.phase==='feedback'&&$('nextBtn').classList.contains('hidden'))advance();$('pauseOverlay').classList.remove('active');}
 $('pauseBtn').addEventListener('click',pause);
 $('resumeBtn').addEventListener('click',resume);
@@ -508,7 +559,7 @@ function finish(partial=false){
   else if(S.mode==='all'&&!partial&&total===100){badge.style.display='block';badge.textContent=`✨ 100もん がんばった！ こんどは 10ぷん いない に ちょうせん！`;}
   else badge.style.display='none';
   const perfect=S.correct===total;
-  $('resBubble').textContent=goal?'さいこう！ ぼく ダンス しちゃう！':perfect?'ぜんぶ せいかい！ てんさい！':S.correct/total>=.8?'よく がんばったね！':'がんばったね！ つぎは もっと できるよ';
+  $('resBubble').textContent=goal?'さいこう！ わたし ダンス しちゃう！':perfect?'ぜんぶ せいかい！ てんさい！':S.correct/total>=.8?'よく がんばったね！':'がんばったね！ つぎは もっと できるよ';
   renderPet($('resPet'),goal||perfect?'wow':'happy');$('resPet').className='pet'+(goal||perfect?' party':'');
   if(goal||perfect){confetti();sfx.fanfare();}else sfx.milestone();
   const uniq=l=>{const m={};l.forEach(p=>m[key(...p)]=p);return Object.values(m);};
