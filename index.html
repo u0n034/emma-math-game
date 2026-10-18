@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#e9f5ff">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>えまちゃんの さんすう</title>
+<style>
+  :root{
+    --bg:#e9f5ff; --card:#ffffff; --ink:#2b3a4a; --muted:#7f93a6;
+    --aqua:#4fb8ff; --aqua-dark:#1f8fe0; --mint:#5fd3a0; --coral:#ff8a80; --sun:#ffd166;
+    --key:#f3f8fc; --key-ink:#1f2f3f; --shadow:0 6px 0 rgba(0,0,0,.08);
+    --radius:22px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:"Hiragino Maru Gothic ProN","Rounded Mplus 1c","Kosugi Maru","Hiragino Sans",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100dvh;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+    overflow:hidden;
+  }
+  .screen{display:none;width:100%;max-width:560px;flex:1;flex-direction:column;align-items:center;gap:14px;padding-top:12px}
+  .screen.active{display:flex}
+  h1{font-size:28px;margin:6px 0 0;text-align:center}
+  .sub{color:var(--muted);font-size:15px;margin:0}
+  button{font:inherit;border:0;cursor:pointer;color:var(--ink)}
+  .btn{
+    width:100%;padding:18px 20px;border-radius:var(--radius);background:var(--card);
+    font-size:21px;font-weight:700;box-shadow:var(--shadow);text-align:left;display:flex;align-items:center;gap:14px
+  }
+  .btn:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.08)}
+  .btn .ic{font-size:30px}
+  .btn small{display:block;font-size:13px;color:var(--muted);font-weight:500;margin-top:2px}
+  .btn.primary{background:var(--aqua);color:#fff}
+  .btn.primary small{color:#eaf6ff}
+  .btn.mint{background:var(--mint);color:#fff}.btn.mint small{color:#eafff5}
+  .btn.sun{background:var(--sun)}.btn.sun small{color:#8a6d1f}
+  .btn.center{justify-content:center;text-align:center}
+  .link{background:none;color:var(--muted);font-size:14px;padding:10px;text-decoration:underline}
+  .row{display:flex;gap:10px;width:100%}
+  .row .btn{flex:1}
+
+  /* pet */
+  .pet-wrap{position:relative;display:flex;flex-direction:column;align-items:center;margin-top:4px}
+  .pet{width:150px;height:150px;animation:bob 2.4s ease-in-out infinite;transform-origin:50% 100%}
+  .pet.small{width:96px;height:96px}
+  .pet.jump{animation:jump .7s cubic-bezier(.3,1.5,.5,1) 1}
+  .pet.wiggle{animation:wiggle .6s ease-in-out 1}
+  .pet.party{animation:party 1s ease-in-out infinite}
+  @keyframes bob{0%,100%{transform:translateY(0) scale(1,1)}50%{transform:translateY(-6px) scale(1.02,.98)}}
+  @keyframes jump{0%{transform:translateY(0) scale(1,1)}30%{transform:translateY(-34px) scale(.95,1.08)}60%{transform:translateY(0) scale(1.08,.92)}100%{transform:translateY(0) scale(1,1)}}
+  @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-7deg)}75%{transform:rotate(7deg)}}
+  @keyframes party{0%,100%{transform:translateY(0) rotate(-6deg)}50%{transform:translateY(-18px) rotate(6deg)}}
+  .bubble{
+    position:relative;background:var(--card);border-radius:18px;padding:10px 16px;font-size:17px;font-weight:700;
+    box-shadow:var(--shadow);min-height:44px;display:flex;align-items:center;justify-content:center;text-align:center;max-width:320px
+  }
+  .bubble:after{content:"";position:absolute;left:50%;bottom:-9px;margin-left:-9px;border:9px solid transparent;border-top-color:var(--card);border-bottom:0}
+  .pet-name{font-size:14px;color:var(--muted);margin-top:4px}
+  .lv{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+  .lvbar{width:90px;height:7px;background:#d6e8f5;border-radius:4px;overflow:hidden}
+  .lvbar i{display:block;height:100%;background:var(--aqua)}
+
+  /* play */
+  .topbar{width:100%;display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted)}
+  .topbar .count{font-weight:700;color:var(--ink);font-size:16px}
+  .progress{flex:1;height:10px;background:#d6e8f5;border-radius:6px;overflow:hidden}
+  .progress i{display:block;height:100%;background:var(--aqua);transition:width .3s}
+  .timer{font-variant-numeric:tabular-nums;opacity:.7}
+  .pause{background:none;font-size:18px;padding:6px 8px;color:var(--muted)}
+  .card{
+    width:100%;background:var(--card);border-radius:28px;box-shadow:var(--shadow);
+    padding:22px 16px 18px;display:flex;flex-direction:column;align-items:center;gap:10px;position:relative
+  }
+  .eq{font-size:56px;font-weight:800;display:flex;align-items:center;gap:12px;font-variant-numeric:tabular-nums;line-height:1}
+  .eq .ans{
+    min-width:92px;height:76px;border-radius:16px;background:var(--key);border:3px dashed #bcd8ee;
+    display:flex;align-items:center;justify-content:center;color:var(--aqua-dark);padding:0 10px
+  }
+  .eq .ans.filled{border-style:solid;border-color:var(--aqua)}
+  .eq .ans.correct{border-style:solid;border-color:var(--mint);background:#e9fbf2;color:#1c9a63}
+  .card.ng .eq .ans.correct{border-color:var(--coral);color:#d9534f;background:#fff}
+  .eq .ans .caret{width:3px;height:44px;background:var(--aqua);animation:blink 1s step-end infinite;border-radius:2px}
+  @keyframes blink{50%{opacity:0}}
+  .card.ok{background:#e9fbf2}
+  .card.ng{background:#fff1ef}
+  .fb{font-size:22px;font-weight:700;min-height:30px;text-align:center}
+  .fb .big{font-size:30px}
+  .fb.ok{color:#1c9a63}.fb.ng{color:#d9534f}
+  .yours{font-size:15px;color:var(--muted)}
+  .pet-side{position:absolute;right:10px;top:-58px}
+
+  .pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:100%;max-width:400px}
+  .key{
+    height:66px;border-radius:18px;background:var(--card);font-size:30px;font-weight:700;color:var(--key-ink);box-shadow:var(--shadow)
+  }
+  .key:active{transform:translateY(3px);box-shadow:0 3px 0 rgba(0,0,0,.08)}
+  .key.del{font-size:24px;color:var(--muted)}
+  .key.go{background:var(--aqua);color:#fff;font-size:22px}
+  .key.go:disabled{opacity:.45}
+  .next{width:100%;max-width:400px;height:66px;border-radius:18px;background:var(--sun);font-size:22px;font-weight:700;box-shadow:var(--shadow)}
+  .pad.hidden,.next.hidden{display:none}
+
+  /* result */
+  .stat{display:flex;gap:10px;width:100%}
+  .stat .box{flex:1;background:var(--card);border-radius:18px;padding:12px;text-align:center;box-shadow:var(--shadow)}
+  .stat .box b{display:block;font-size:30px;font-variant-numeric:tabular-nums}
+  .stat .box span{font-size:13px;color:var(--muted)}
+  .badge{background:var(--sun);border-radius:14px;padding:10px 16px;font-weight:800;font-size:18px;text-align:center;width:100%}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+  .chip{background:var(--card);border-radius:12px;padding:6px 12px;font-weight:700;box-shadow:0 3px 0 rgba(0,0,0,.06);font-variant-numeric:tabular-nums}
+  .chip.slow{background:#fff6dc}.chip.wrong{background:#ffe6e3}
+  .sect{width:100%;font-size:14px;color:var(--muted);margin:4px 0 -6px}
+
+  /* overlay */
+  .overlay{position:fixed;inset:0;background:rgba(233,245,255,.96);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:10;padding:16px}
+  .overlay.active{display:flex}
+  .overlay .btn{max-width:360px}
+
+  /* confetti */
+  .confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:5}
+  .confetti i{position:absolute;top:-12px;width:10px;height:14px;border-radius:3px;animation:fall 2.6s linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+
+  /* parent */
+  .parent{align-items:stretch;overflow:auto;padding-bottom:30px;gap:12px}
+  .parent h2{font-size:18px;margin:12px 0 2px}
+  .grid{display:grid;grid-template-columns:28px repeat(10,1fr);gap:3px;width:100%;font-size:12px;font-variant-numeric:tabular-nums}
+  .grid div{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:6px;background:#f1f6fa;color:#2b3a4a}
+  .grid .hd{background:none;color:var(--muted);font-weight:700}
+  .seg{display:flex;background:#d6e8f5;border-radius:12px;padding:3px;gap:3px}
+  .seg button{flex:1;padding:8px;border-radius:10px;background:none;font-size:14px}
+  .seg button.on{background:var(--card);font-weight:700}
+  table{width:100%;border-collapse:collapse;font-size:14px;background:var(--card);border-radius:14px;overflow:hidden}
+  td,th{padding:8px 6px;text-align:left;border-bottom:1px solid #eef3f7}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  .setting{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:14px;padding:12px 14px;font-size:15px}
+  .setting input[type=number]{width:70px;font:inherit;padding:6px;border-radius:8px;border:1px solid #cfe0ee;text-align:right}
+  .setting input[type=text]{width:140px;font:inherit;padding:6px 8px;border-radius:8px;border:1px solid #cfe0ee}
+  .toggle{width:52px;height:30px;border-radius:15px;background:#cfd9e3;position:relative}
+  .toggle.on{background:var(--mint)}
+  .toggle:after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .15s}
+  .toggle.on:after{left:25px}
+  .danger{color:#d9534f}
+  .legend{display:flex;gap:10px;font-size:12px;color:var(--muted);align-items:center;flex-wrap:wrap}
+  .legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:middle;margin-right:4px}
+
+  @media (max-height:700px){
+    .pet{width:110px;height:110px}.eq{font-size:46px}.key{height:56px}.card{padding:16px 12px 12px}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<section id="home" class="screen active">
+  <h1>えまちゃんの さんすう</h1>
+  <div class="pet-wrap">
+    <div class="bubble" id="homeBubble">きょうも いっしょに がんばろう！</div>
+    <div style="height:10px"></div>
+    <div class="pet" id="homePet"></div>
+    <div class="pet-name" id="homePetName"></div>
+    <div class="lv" id="homeLv"></div>
+  </div>
+  <button class="btn primary" data-mode="all">
+    <span class="ic">🌊</span><span>100もん チャレンジ<small>1〜10の たしざん ぜんぶ！ 10ぷんで できるかな？</small></span>
+  </button>
+  <button class="btn sun" data-mode="weak" id="weakBtn">
+    <span class="ic">💪</span><span>にがて チャレンジ<small id="weakSub">まちがえた もんだい・じかんが かかった もんだい を もういちど</small></span>
+  </button>
+  <button class="btn mint" data-mode="78">
+    <span class="ic">⭐</span><span>7と8 とっくん<small>7や8が でてくる もんだい だけ（36もん）</small></span>
+  </button>
+  <button class="link" id="toParent">おうちのひと へ</button>
+</section>
+
+<!-- ============ PLAY ============ -->
+<section id="play" class="screen">
+  <div class="topbar">
+    <span class="count"><span id="qNow">1</span>/<span id="qTotal">100</span></span>
+    <div class="progress"><i id="bar" style="width:0%"></i></div>
+    <span class="timer" id="timer">0:00</span>
+    <button class="pause" id="pauseBtn" title="やすむ">⏸</button>
+  </div>
+
+  <div class="pet-wrap" style="margin-top:2px">
+    <div class="bubble" id="playBubble">さいしょの もんだい！</div>
+    <div style="height:8px"></div>
+    <div class="pet small" id="playPet"></div>
+  </div>
+
+  <div class="card" id="card">
+    <div class="eq"><span id="a">7</span><span>+</span><span id="b">8</span><span>=</span><span class="ans" id="ans"><span class="caret"></span></span></div>
+    <div class="fb" id="fb"></div>
+    <div class="yours" id="yours"></div>
+  </div>
+
+  <div class="pad" id="pad">
+    <button class="key" data-k="1">1</button><button class="key" data-k="2">2</button><button class="key" data-k="3">3</button>
+    <button class="key" data-k="4">4</button><button class="key" data-k="5">5</button><button class="key" data-k="6">6</button>
+    <button class="key" data-k="7">7</button><button class="key" data-k="8">8</button><button class="key" data-k="9">9</button>
+    <button class="key del" data-k="del">けす</button><button class="key" data-k="0">0</button><button class="key go" data-k="go" id="goKey">OK</button>
+  </div>
+  <button class="next hidden" id="nextBtn">つぎへ ▶</button>
+  <button class="link" id="quitBtn">やめる</button>
+</section>
+
+<!-- ============ RESULT ============ -->
+<section id="result" class="screen">
+  <h1 id="resTitle">クリア！</h1>
+  <div class="pet-wrap">
+    <div class="bubble" id="resBubble"></div>
+    <div style="height:10px"></div>
+    <div class="pet" id="resPet"></div>
+  </div>
+  <div class="badge" id="resBadge" style="display:none"></div>
+  <div class="stat">
+    <div class="box"><b id="resCorrect">0</b><span>せいかい</span></div>
+    <div class="box"><b id="resTime">0:00</b><span>かかった じかん</span></div>
+  </div>
+  <div class="sect" id="resWrongHd">まちがえた もんだい</div>
+  <div class="chips" id="resWrong"></div>
+  <div class="sect" id="resSlowHd">じかんが かかった もんだい</div>
+  <div class="chips" id="resSlow"></div>
+  <button class="btn sun center" id="retryWeak" style="display:none">💪 この にがてを もういちど</button>
+  <button class="btn primary center" id="toHome">🏠 ホームへ</button>
+</section>
+
+<!-- ============ PARENT ============ -->
+<section id="parent" class="screen parent">
+  <div class="row" style="align-items:center;justify-content:space-between">
+    <h1 style="font-size:22px;margin:0">おうちのひと 画面</h1>
+    <button class="link" id="parentBack">← もどる</button>
+  </div>
+
+  <h2>問題別の傾向（たての数 + よこの数）</h2>
+  <div class="seg" id="gridSeg">
+    <button class="on" data-v="time">平均時間</button><button data-v="wrong">まちがい率</button><button data-v="n">回数</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="legend" id="legend"></div>
+
+  <h2>セッション履歴</h2>
+  <table id="hist"><thead><tr><th>日時</th><th>モード</th><th>問題</th><th>正解</th><th>時間</th><th>にがて</th></tr></thead><tbody></tbody></table>
+
+  <h2>設定</h2>
+  <div class="setting"><span>ペットの名前</span><input type="text" id="setName" maxlength="10"></div>
+  <div class="setting"><span>「遅い」とみなす秒数（1問あたり）</span><input type="number" id="setSlow" min="3" max="30" step="1"></div>
+  <div class="setting"><span>にがてチャレンジの問題数</span><input type="number" id="setWeakN" min="10" max="50" step="5"></div>
+  <div class="setting"><span>0 を含める（0+3 など）</span><button class="toggle" id="setZero"></button></div>
+  <div class="setting"><span>効果音</span><button class="toggle" id="setSound"></button></div>
+  <button class="link danger" id="resetBtn">すべての記録を消す</button>
+</section>
+
+<!-- ============ PAUSE OVERLAY ============ -->
+<div class="overlay" id="pauseOverlay">
+  <div class="pet" id="pausePet"></div>
+  <div class="bubble">ちょっと ひとやすみ。<br>じゅんびが できたら おしてね</div>
+  <button class="btn primary center" id="resumeBtn">▶ つづける</button>
+  <button class="link" id="quitBtn2">やめて ホームへ</button>
+</div>
+
+<div class="confetti" id="confetti"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><radialGradient id="petGrad" cx="40%" cy="35%" r="70%"><stop offset="0" stop-color="#9fdcff"/><stop offset="1" stop-color="#3aa6f2"/></radialGradient></defs></svg>
+
+<script>
+/* ===================== STORAGE ===================== */
+const KEY='emmaMath.v1';
+const defaults={
+  petName:'アクア', totalCorrect:0,
+  stats:{},      // "a+b": {n, w, t:[recent ms], c:[recent correct bool]}
+  sessions:[],   // {date, mode, total, correct, ms, wrong:[], slow:[]}
+  settings:{slowMs:8000, weakN:20, includeZero:false, sound:true}
+};
+let D=load();
+function load(){
+  try{const raw=localStorage.getItem(KEY); if(raw){const o=JSON.parse(raw); return {...defaults,...o,settings:{...defaults.settings,...(o.settings||{})}};}}catch(e){}
+  return JSON.parse(JSON.stringify(defaults));
+}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D));}catch(e){}}
+
+/* ===================== PET ===================== */
+const LEVELS=[0,30,100,250,500,900,1500]; // totalCorrect thresholds
+function petLevel(){let l=1;for(let i=1;i<LEVELS.length;i++){if(D.totalCorrect>=LEVELS[i])l=i+1;}return l;}
+function petSVG(mood='normal'){
+  const lv=petLevel();
+  const eyes = mood==='happy'
+    ? '<path d="M38 56 q8 -10 16 0" stroke="#1f3a52" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M66 56 q8 -10 16 0" stroke="#1f3a52" stroke-width="4" fill="none" stroke-linecap="round"/>'
+    : mood==='wow'
+    ? '<circle cx="46" cy="56" r="6" fill="#1f3a52"/><circle cx="74" cy="56" r="6" fill="#1f3a52"/><circle cx="48" cy="54" r="2" fill="#fff"/><circle cx="76" cy="54" r="2" fill="#fff"/>'
+    : mood==='think'
+    ? '<circle cx="46" cy="57" r="4.5" fill="#1f3a52"/><circle cx="74" cy="57" r="4.5" fill="#1f3a52"/><path d="M38 46 l14 4" stroke="#1f3a52" stroke-width="3" stroke-linecap="round"/>'
+    : '<circle cx="46" cy="57" r="4.5" fill="#1f3a52"/><circle cx="74" cy="57" r="4.5" fill="#1f3a52"/><circle cx="48" cy="55" r="1.6" fill="#fff"/><circle cx="76" cy="55" r="1.6" fill="#fff"/>';
+  const mouth = mood==='happy'||mood==='wow'
+    ? '<path d="M50 70 q10 12 20 0 z" fill="#1f3a52"/><path d="M53 75 q7 5 14 0" fill="#ff8a80"/>'
+    : mood==='think' ? '<path d="M54 72 q6 -4 12 0" stroke="#1f3a52" stroke-width="3.5" fill="none" stroke-linecap="round"/>'
+    : '<path d="M52 70 q8 8 16 0" stroke="#1f3a52" stroke-width="3.5" fill="none" stroke-linecap="round"/>';
+  const cheeks = lv>=2 ? '<ellipse cx="36" cy="68" rx="6" ry="4" fill="#ffb3c1" opacity=".8"/><ellipse cx="84" cy="68" rx="6" ry="4" fill="#ffb3c1" opacity=".8"/>' : '';
+  const sprout = lv>=3 ? '<path d="M60 14 q-2 -12 -12 -14 q2 10 12 14z" fill="#5fd3a0"/><path d="M60 14 q2 -12 12 -14 q-2 10 -12 14z" fill="#74e0b0"/>' : '';
+  const bow = lv>=4 ? '<path d="M78 30 l12 -8 l0 16z M90 30 l12 -8 l0 16z" fill="#ff8a80"/><circle cx="90" cy="30" r="4" fill="#ff6f61"/>' : '';
+  const crown = lv>=5 ? '<path d="M40 22 l8 -14 l12 10 l12 -10 l8 14 z" fill="#ffd166" stroke="#e6b84a" stroke-width="2" stroke-linejoin="round"/><circle cx="48" cy="8" r="3" fill="#ff8a80"/><circle cx="60" cy="18" r="3" fill="#5fd3a0"/><circle cx="72" cy="8" r="3" fill="#4fb8ff"/>' : '';
+  const stars = lv>=6 ? '<text x="8" y="40" font-size="14">✨</text><text x="98" y="90" font-size="14">✨</text>' : '';
+  const wings = lv>=7 ? '<path d="M22 70 q-18 -10 -14 -30 q12 8 14 30z" fill="#fff" opacity=".85"/><path d="M98 70 q18 -10 14 -30 q-12 8 -14 30z" fill="#fff" opacity=".85"/>' : '';
+  return `<svg viewBox="0 0 120 120" width="100%" height="100%">
+    ${wings}
+    <ellipse cx="60" cy="112" rx="30" ry="5" fill="rgba(0,0,0,.08)"/>
+    <path d="M60 10 C60 10 22 52 22 76 a38 38 0 0 0 76 0 C98 52 60 10 60 10z" fill="url(#petGrad)"/>
+    <ellipse cx="42" cy="44" rx="7" ry="12" fill="#fff" opacity=".55" transform="rotate(20 42 44)"/>
+    ${sprout}${crown}${bow}${cheeks}${eyes}${mouth}${stars}
+  </svg>`;
+}
+function renderPet(el,mood){el.innerHTML=petSVG(mood);}
+function animatePet(el,cls){el.classList.remove('jump','wiggle');void el.offsetWidth;el.classList.add(cls);setTimeout(()=>el.classList.remove(cls),800);}
+
+/* ===================== SOUND ===================== */
+let ac=null;
+function tone(f,t,dur=.12,type='sine',vol=.18){
+  if(!D.settings.sound)return;
+  try{ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;
+    g.gain.setValueAtTime(0,ac.currentTime+t);g.gain.linearRampToValueAtTime(vol,ac.currentTime+t+.01);g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t+dur);
+    o.connect(g).connect(ac.destination);o.start(ac.currentTime+t);o.stop(ac.currentTime+t+dur+.02);}catch(e){}
+}
+const sfx={
+  tap:()=>tone(660,0,.05,'triangle',.08),
+  ok:()=>{tone(784,0,.1);tone(1175,.1,.18);},
+  ng:()=>{tone(330,0,.18,'triangle',.12);},
+  fanfare:()=>{[523,659,784,1047].forEach((f,i)=>tone(f,i*.12,.25));tone(1319,.5,.5);},
+  milestone:()=>{tone(880,0,.1);tone(1109,.1,.1);tone(1319,.2,.2);}
+};
+
+/* ===================== PROBLEMS ===================== */
+const nums=()=>{const lo=D.settings.includeZero?0:1;const r=[];for(let i=lo;i<=10;i++)r.push(i);return r;};
+const key=(a,b)=>`${a}+${b}`;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function allProblems(){const r=[];for(const a of nums())for(const b of nums())r.push([a,b]);return r;}
+function noAdjacentDup(list){ // try to avoid same problem twice in a row
+  for(let k=0;k<5;k++){let bad=false;for(let i=1;i<list.length;i++){if(key(...list[i])===key(...list[i-1])){bad=true;const j=Math.floor(Math.random()*list.length);[list[i],list[j]]=[list[j],list[i]];}}if(!bad)break;}
+  return list;
+}
+function weakScore(a,b){
+  const s=D.stats[key(a,b)];if(!s||!s.n)return 0;
+  const recentC=s.c.slice(-4),recentT=s.t.slice(-4);
+  const wrongRate=recentC.filter(x=>!x).length/recentC.length;
+  const avgT=recentT.reduce((x,y)=>x+y,0)/recentT.length;
+  return wrongRate*2.5 + Math.max(0,avgT/D.settings.slowMs-0.6);
+}
+function weakList(){
+  return allProblems().map(([a,b])=>({a,b,s:weakScore(a,b)})).filter(p=>p.s>=0.5).sort((x,y)=>y.s-x.s);
+}
+function buildWeakSet(seed){ // seed: optional [[a,b],...] from last session
+  const N=D.settings.weakN; const set=[];
+  const src=seed&&seed.length?seed.map(([a,b])=>({a,b,s:9})):weakList();
+  for(const p of src){ if(set.length>=N)break; set.push([p.a,p.b]); if(set.length<N)set.push([p.a,p.b]); }
+  // fill with 7/8 problems, then random
+  const fill=shuffle(allProblems().filter(([a,b])=>a===7||a===8||b===7||b===8));
+  for(const p of fill){if(set.length>=N)break;if(!set.some(q=>key(...q)===key(...p)))set.push(p);}
+  const rest=shuffle(allProblems());
+  for(const p of rest){if(set.length>=N)break;set.push(p);}
+  return noAdjacentDup(shuffle(set));
+}
+function buildSet(mode,seed){
+  if(mode==='all')return shuffle(allProblems());
+  if(mode==='78')return shuffle(allProblems().filter(([a,b])=>a===7||a===8||b===7||b===8));
+  return buildWeakSet(seed);
+}
+const MODE_NAME={all:'100もん',weak:'にがて',78:'7と8'};
+
+/* ===================== UI HELPERS ===================== */
+const $=id=>document.getElementById(id);
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active');}
+const fmt=ms=>{const s=Math.floor(ms/1000);return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+function confetti(){const c=$('confetti');c.innerHTML='';const cols=['#4fb8ff','#5fd3a0','#ffd166','#ff8a80','#c3a6ff'];
+  for(let i=0;i<70;i++){const e=document.createElement('i');e.style.left=Math.random()*100+'vw';e.style.background=pick(cols);e.style.animationDelay=Math.random()*1.2+'s';e.style.transform=`rotate(${Math.random()*360}deg)`;c.appendChild(e);}
+  setTimeout(()=>c.innerHTML='',4500);}
+
+/* ===================== HOME ===================== */
+function renderHome(){
+  renderPet($('homePet'),'normal');
+  $('homePetName').textContent=D.petName;
+  const lv=petLevel(),next=LEVELS[lv]||null,prev=LEVELS[lv-1];
+  $('homeLv').innerHTML=next?`Lv.${lv} <span class="lvbar"><i style="width:${Math.min(100,(D.totalCorrect-prev)/(next-prev)*100)}%"></i></span> つぎまで ${next-D.totalCorrect}もん`:`Lv.${lv} MAX!`;
+  const w=weakList();
+  $('weakSub').textContent=w.length?`いま にがてな もんだい：${w.length}こ（${w.slice(0,3).map(p=>key(p.a,p.b)).join('、')}…）`:'まだ きろくが ないので、7と8の もんだいを ちゅうしんに だすよ';
+  const msgs=['きょうも いっしょに がんばろう！',`${D.petName}だよ！ どれから やる？`,'たしざん だいすき！','ゆっくりで いいよ、いっしょに やろう'];
+  $('homeBubble').textContent=D.sessions.length?pick(msgs):`はじめまして！ ぼく ${D.petName}。 いっしょに たしざん しよう！`;
+}
+document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{sfx.tap();startSession(b.dataset.mode);}));
+$('toParent').addEventListener('click',()=>{renderParent();show('parent');});
+
+/* ===================== SESSION ===================== */
+let S=null; // session state
+let tick=null;
+function startSession(mode,seed){
+  S={mode,list:buildSet(mode,seed),i:0,correct:0,activeMs:0,qStart:0,input:'',phase:'input',wrong:[],slow:[],times:[],paused:false};
+  $('qTotal').textContent=S.list.length;
+  renderPet($('playPet'),'normal');
+  $('playBubble').textContent=pick(['さいしょの もんだい！','よーい どん！','いっしょに がんばろう！']);
+  show('play');
+  nextProblem();
+  clearInterval(tick);tick=setInterval(updateTimer,500);
+}
+function elapsed(){return S.activeMs+(S.phase==='input'&&!S.paused?Date.now()-S.qStart:0);}
+function updateTimer(){if(S)$('timer').textContent=fmt(elapsed());}
+function nextProblem(){
+  const [a,b]=S.list[S.i];
+  $('a').textContent=a;$('b').textContent=b;
+  $('qNow').textContent=S.i+1;$('bar').style.width=(S.i/S.list.length*100)+'%';
+  S.input='';S.phase='input';renderInput();
+  $('card').className='card';$('fb').textContent='';$('fb').className='fb';$('yours').textContent='';
+  $('pad').classList.remove('hidden');$('nextBtn').classList.add('hidden');
+  S.qStart=Date.now();
+}
+function renderInput(){
+  const el=$('ans');
+  el.className='ans'+(S.input?' filled':'');
+  el.innerHTML=S.input?S.input:'<span class="caret"></span>';
+  $('goKey').disabled=!S.input;
+}
+function press(k){
+  if(!S||S.phase!=='input'||S.paused)return;
+  if(k==='del'){S.input=S.input.slice(0,-1);renderInput();sfx.tap();return;}
+  if(k==='go'){if(S.input)submit();return;}
+  if(S.input.length>=2)return;
+  S.input+=k;renderInput();sfx.tap();
+  if(S.input.length===2)setTimeout(()=>{if(S&&S.phase==='input'&&S.input.length===2)submit();},180);
+}
+const PRAISE=['せいかい！','やったー！','すごい！','さすが！','ピンポーン！','いいね！','かんぺき！','その ちょうし！'];
+function submit(){
+  const ms=Date.now()-S.qStart;S.activeMs+=ms;S.phase='feedback';
+  const [a,b]=S.list[S.i],ans=a+b,got=parseInt(S.input,10),ok=got===ans;
+  S.times.push(ms);
+  const st=D.stats[key(a,b)]||(D.stats[key(a,b)]={n:0,w:0,t:[],c:[]});
+  st.n++;if(!ok)st.w++;st.t.push(ms);st.c.push(ok);if(st.t.length>6){st.t.shift();st.c.shift();}
+  if(ok){S.correct++;D.totalCorrect++;}else S.wrong.push([a,b]);
+  if(ms>D.settings.slowMs)S.slow.push([a,b]);
+  save();
+  $('pad').classList.add('hidden');
+  const fb=$('fb');
+  if(ok){
+    $('card').className='card ok';fb.className='fb ok';fb.textContent='⭕ せいかい！';$('ans').className='ans correct';
+    renderPet($('playPet'),'happy');animatePet($('playPet'),'jump');sfx.ok();
+    $('playBubble').textContent=pick(PRAISE);
+    const t=S.i+1;
+    if(t===S.list.length){setTimeout(finish,900);return;}
+    if(S.list.length>=36&&(t===Math.floor(S.list.length/4)||t===Math.floor(S.list.length/2)||t===Math.floor(S.list.length*3/4))){
+      $('playBubble').textContent=t===Math.floor(S.list.length/2)?'はんぶん きたよ！ すごい！':t<S.list.length/2?'いい ちょうし！':'あと すこし！ がんばれ！';sfx.milestone();
+    }
+    setTimeout(()=>{if(S&&S.phase==='feedback'&&!S.paused)advance();},900);
+  }else{
+    $('card').className='card ng';fb.className='fb ng';fb.textContent='おしい！ こたえは…';
+    $('ans').className='ans correct';$('ans').textContent=ans;
+    $('yours').innerHTML=`えまちゃんの こたえ：<s>${got}</s>`;
+    renderPet($('playPet'),'think');animatePet($('playPet'),'wiggle');sfx.ng();
+    $('playBubble').textContent=pick([`おしい！ ${a}+${b}は ${ans} だよ`,`${ans} だったね。つぎ いこう！`,`だいじょうぶ！ ${a}+${b}=${ans}、おぼえた？`]);
+    $('nextBtn').classList.remove('hidden');
+  }
+}
+function advance(){
+  S.i++;
+  if(S.i>=S.list.length){finish();return;}
+  renderPet($('playPet'),'normal');
+  nextProblem();
+}
+$('nextBtn').addEventListener('click',()=>{if(S&&S.phase==='feedback'){sfx.tap();advance();}});
+$('pad').addEventListener('click',e=>{const k=e.target.closest('.key');if(k)press(k.dataset.k);});
+document.addEventListener('keydown',e=>{
+  if(!$('play').classList.contains('active'))return;
+  if(e.key>='0'&&e.key<='9')press(e.key);
+  else if(e.key==='Backspace')press('del');
+  else if(e.key==='Enter'){if(S.phase==='input')press('go');else if(S.phase==='feedback')advance();}
+});
+
+/* pause / quit */
+function pause(){if(!S)return;if(S.phase==='input'){S.activeMs+=Date.now()-S.qStart;}S.paused=true;renderPet($('pausePet'),'normal');$('pauseOverlay').classList.add('active');}
+function resume(){S.paused=false;if(S.phase==='input')S.qStart=Date.now();else if(S.phase==='feedback'&&$('nextBtn').classList.contains('hidden'))advance();$('pauseOverlay').classList.remove('active');}
+$('pauseBtn').addEventListener('click',pause);
+$('resumeBtn').addEventListener('click',resume);
+function quit(){
+  if(!S)return;
+  if(S.i>=3&&confirm('とちゅうだけど やめる？ ここまでの きろくは のこるよ')){S.list=S.list.slice(0,S.phase==='feedback'?S.i+1:S.i);finish(true);}
+  else if(S.i<3){clearInterval(tick);S=null;$('pauseOverlay').classList.remove('active');renderHome();show('home');}
+}
+$('quitBtn').addEventListener('click',quit);
+$('quitBtn2').addEventListener('click',quit);
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&S&&!S.paused&&$('play').classList.contains('active'))pause();});
+
+/* ===================== RESULT ===================== */
+let lastSeed=[];
+function finish(partial=false){
+  clearInterval(tick);$('pauseOverlay').classList.remove('active');
+  const total=S.times.length,ms=S.activeMs;
+  const goal=S.mode==='all'&&!partial&&total===100&&ms<=600000;
+  D.sessions.push({date:Date.now(),mode:S.mode,total,correct:S.correct,ms,wrong:S.wrong,slow:S.slow,partial});
+  if(D.sessions.length>60)D.sessions.shift();
+  save();
+  $('resTitle').textContent=partial?'おつかれさま！':total===100?'100もん クリア！':`${total}もん クリア！`;
+  $('resCorrect').textContent=`${S.correct}/${total}`;$('resTime').textContent=fmt(ms);
+  const badge=$('resBadge');
+  if(goal){badge.style.display='block';badge.textContent='🏆 10ぷん いないに 100もん！ すごすぎる！';}
+  else if(S.mode==='all'&&!partial&&total===100){badge.style.display='block';badge.textContent=`✨ 100もん がんばった！ こんどは 10ぷん いない に ちょうせん！`;}
+  else badge.style.display='none';
+  const perfect=S.correct===total;
+  $('resBubble').textContent=goal?'さいこう！ ぼく ダンス しちゃう！':perfect?'ぜんぶ せいかい！ てんさい！':S.correct/total>=.8?'よく がんばったね！':'がんばったね！ つぎは もっと できるよ';
+  renderPet($('resPet'),goal||perfect?'wow':'happy');$('resPet').className='pet'+(goal||perfect?' party':'');
+  if(goal||perfect){confetti();sfx.fanfare();}else sfx.milestone();
+  const uniq=l=>{const m={};l.forEach(p=>m[key(...p)]=p);return Object.values(m);};
+  const w=uniq(S.wrong),sl=uniq(S.slow).filter(p=>!w.some(q=>key(...q)===key(...p)));
+  $('resWrong').innerHTML=w.map(p=>`<span class="chip wrong">${p[0]}+${p[1]}=${p[0]+p[1]}</span>`).join('')||'<span class="chip">なし 🎉</span>';
+  $('resSlow').innerHTML=sl.map(p=>`<span class="chip slow">${p[0]}+${p[1]}=${p[0]+p[1]}</span>`).join('')||'<span class="chip">なし 🎉</span>';
+  lastSeed=[...w,...sl];
+  $('retryWeak').style.display=lastSeed.length?'flex':'none';
+  S=null;show('result');
+}
+$('retryWeak').addEventListener('click',()=>{sfx.tap();startSession('weak',lastSeed);});
+$('toHome').addEventListener('click',()=>{sfx.tap();renderHome();show('home');});
+
+/* ===================== PARENT ===================== */
+let gridView='time';
+function renderParent(){
+  renderGrid();
+  const tb=$('hist').querySelector('tbody');
+  tb.innerHTML=D.sessions.slice().reverse().slice(0,30).map(s=>{
+    const d=new Date(s.date);const ds=`${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    const uniq=l=>[...new Set(l.map(p=>key(...p)))];
+    const weak=[...new Set([...uniq(s.wrong),...uniq(s.slow)])].join(' ');
+    return `<tr><td>${ds}</td><td>${MODE_NAME[s.mode]}${s.partial?'(途中)':''}</td><td>${s.total}</td><td>${s.correct}</td><td>${fmt(s.ms)}${s.mode==='all'&&!s.partial&&s.ms<=600000?' 🏆':''}</td><td style="font-size:12px">${weak||'—'}</td></tr>`;
+  }).join('')||'<tr><td colspan="6" style="color:var(--muted)">まだ記録がありません</td></tr>';
+  $('setName').value=D.petName;$('setSlow').value=D.settings.slowMs/1000;$('setWeakN').value=D.settings.weakN;
+  $('setZero').className='toggle'+(D.settings.includeZero?' on':'');$('setSound').className='toggle'+(D.settings.sound?' on':'');
+}
+function renderGrid(){
+  const g=$('grid');const ns=nums();let html='<div class="hd">+</div>'+ns.map(b=>`<div class="hd">${b}</div>`).join('');
+  for(const a of ns){html+=`<div class="hd">${a}</div>`;
+    for(const b of ns){const s=D.stats[key(a,b)];let txt='',bg='#f1f6fa',title='';
+      if(s&&s.n){const avg=s.t.reduce((x,y)=>x+y,0)/s.t.length/1000;const wr=s.c.filter(x=>!x).length/s.c.length;
+        title=`${a}+${b}：${s.n}回、平均${avg.toFixed(1)}秒、直近のまちがい ${Math.round(wr*100)}%`;
+        if(gridView==='time'){txt=avg.toFixed(0);bg=heat(Math.min(1,avg/(D.settings.slowMs/1000*1.5)));}
+        else if(gridView==='wrong'){txt=Math.round(wr*100)+'';bg=heat(wr);}
+        else {txt=s.n;bg=`rgba(79,184,255,${Math.min(1,s.n/8)*.6+.1})`;}
+      }
+      html+=`<div title="${title}" style="background:${bg}">${txt}</div>`;}
+  }
+  g.innerHTML=html;
+  $('legend').innerHTML=gridView==='time'?`<span><i style="background:${heat(0)}"></i>はやい</span><span><i style="background:${heat(.5)}"></i></span><span><i style="background:${heat(1)}"></i>おそい（秒・直近の平均）</span>`
+    :gridView==='wrong'?`<span><i style="background:${heat(0)}"></i>0%</span><span><i style="background:${heat(1)}"></i>100%（直近最大6回のまちがい率）</span>`:`色が濃いほど出題回数が多い`;
+}
+function heat(v){ // 0 green -> 1 red
+  const r=Math.round(95+160*v),g=Math.round(211-110*v),b=Math.round(160-70*v);return `rgb(${r},${g},${b})`;
+}
+$('gridSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;gridView=b.dataset.v;$('gridSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));renderGrid();});
+$('parentBack').addEventListener('click',()=>{renderHome();show('home');});
+$('setName').addEventListener('change',e=>{D.petName=e.target.value.trim()||'アクア';save();});
+$('setSlow').addEventListener('change',e=>{const v=Math.max(3,Math.min(30,+e.target.value||8));D.settings.slowMs=v*1000;e.target.value=v;save();renderGrid();});
+$('setWeakN').addEventListener('change',e=>{const v=Math.max(10,Math.min(50,+e.target.value||20));D.settings.weakN=v;e.target.value=v;save();});
+$('setZero').addEventListener('click',()=>{D.settings.includeZero=!D.settings.includeZero;save();renderParent();});
+$('setSound').addEventListener('click',()=>{D.settings.sound=!D.settings.sound;save();renderParent();});
+$('resetBtn').addEventListener('click',()=>{if(confirm('すべての記録（成績・ペットのレベル）を消します。よろしいですか？')){localStorage.removeItem(KEY);D=load();renderParent();}});
+
+/* ===================== INIT ===================== */
+renderHome();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "name": "えまちゃんの さんすう",
+  "short_name": "さんすう",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#e9f5ff",
+  "theme_color": "#e9f5ff",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
